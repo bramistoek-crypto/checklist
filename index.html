@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Checklist</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 28px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        #taskInput {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        #taskInput:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        #addBtn {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        #addBtn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        #addBtn:active {
+            transform: translateY(0);
+        }
+
+        .checklist {
+            list-style: none;
+        }
+
+        .checklist-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            transition: all 0.3s;
+        }
+
+        .checklist-item:hover {
+            background: #e9ecef;
+        }
+
+        .checklist-item.completed {
+            background: #d4edda;
+        }
+
+        .checklist-item.completed .item-text {
+            text-decoration: line-through;
+            color: #6c757d;
+        }
+
+        input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin-right: 12px;
+            cursor: pointer;
+            accent-color: #667eea;
+        }
+
+        .item-text {
+            flex: 1;
+            font-size: 16px;
+            color: #333;
+        }
+
+        .delete-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        .delete-btn:hover {
+            background: #c82333;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #6c757d;
+            padding: 40px 20px;
+            font-style: italic;
+        }
+
+        .stats {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+            text-align: center;
+            color: #6c757d;
+            font-size: 14px;
+        }
+
+        .protected-task {
+            border: 2px solid #ffc107;
+            background: #fff3cd !important;
+        }
+
+        .protected-task::before {
+            content: '🔒 ';
+        }
+
+        .password-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .password-modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 350px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .modal-content h3 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .modal-content input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+
+        .modal-content input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .modal-buttons button {
+            flex: 1;
+            padding: 10px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .modal-buttons .confirm {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .modal-buttons .cancel {
+            background: #6c757d;
+            color: white;
+        }
+
+        .modal-error {
+            color: #dc3545;
+            margin-top: 10px;
+            font-size: 13px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>✓ My Checklist</h1>
+        
+        <div class="input-group">
+            <input type="text" id="taskInput" placeholder="Add a new task..." onkeypress="handleKeyPress(event)">
+            <button id="addBtn" onclick="addTask()">Add</button>
+        </div>
+
+        <ul id="checklist" class="checklist">
+            <li class="empty-state">No tasks yet. Add one above!</li>
+        </ul>
+
+        <div class="stats" id="stats"></div>
+    </div>
+
+    <!-- Password Modal -->
+    <div id="passwordModal" class="password-modal">
+        <div class="modal-content">
+            <h3>🔒 Password Required</h3>
+            <input type="password" id="modalPasswordInput" placeholder="Enter password..." onkeypress="handleModalKeyPress(event)">
+            <div class="modal-buttons">
+                <button class="cancel" onclick="closeModal()">Cancel</button>
+                <button class="confirm" onclick="confirmPassword()">Confirm</button>
+            </div>
+            <p id="modalError" class="modal-error">Incorrect password</p>
+        </div>
+    </div>
+
+    <script>
+        const CORRECT_PASSWORD = 'bram';
+        const PROTECTED_TASK = 'knuffelen met bram';
+        let tasks = [];
+        let pendingTaskId = null;
+
+        function toggleTask(id) {
+            const task = tasks.find(t => t.id === id);
+            if (!task) return;
+
+            if (task.text === PROTECTED_TASK) {
+                pendingTaskId = id;
+                document.getElementById('passwordModal').classList.add('active');
+                document.getElementById('modalPasswordInput').value = '';
+                document.getElementById('modalError').style.display = 'none';
+                document.getElementById('modalPasswordInput').focus();
+            } else {
+                task.completed = !task.completed;
+                renderChecklist();
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('passwordModal').classList.remove('active');
+            pendingTaskId = null;
+        }
+
+        function confirmPassword() {
+ const input = document.getElementById('modalPasswordInput');
+            if (input.value === CORRECT_PASSWORD) {
+                const task = tasks.find(t => t.id === pendingTaskId);
+                if (task) {
+                    task.completed = !task.completed;
+                    renderChecklist();
+                }
+                closeModal();
+            } else {
+                document.getElementById('modalError').style.display = 'block';
+                input.value = '';
+                input.focus();
+            }
+        }
+
+        function handleModalKeyPress(event) {
+            if (event.key === 'Enter') {
+                confirmPassword();
+            }
+        }
+
+        function addTask() {
+            const input = document.getElementById('taskInput');
+            const text = input.value.trim();
+            
+            if (text === '') return;
+
+            const lowerText = text.toLowerCase();
+            if (lowerText.includes('bram') && lowerText.includes('knuffelen')) {
+                alert('You cannot create this task!');
+                input.value = '';
+                return;
+            }
+
+            tasks.push({
+                id: Date.now(),
+                text: text,
+                completed: false
+            });
+
+            input.value = '';
+            renderChecklist();
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                addTask();
+            }
+        }
+
+        function toggleTask(id) {
+            const task = tasks.find(t => t.id === id);
+            if (task) {
+                task.completed = !task.completed;
+                renderChecklist();
+            }
+        }
+
+        function deleteTask(id) {
+            tasks = tasks.filter(t => t.id !== id);
+            renderChecklist();
+        }
+
+        function renderChecklist() {
+            const checklist = document.getElementById('checklist');
+            const stats = document.getElementById('stats');
+
+            if (tasks.length === 0) {
+                checklist.innerHTML = '<li class="empty-state">No tasks yet. Add one above!</li>';
+                stats.textContent = '';
+                return;
+            }
+
+            checklist.innerHTML = tasks.map(task => `
+                <li class="checklist-item ${task.completed ? 'completed' : ''} ${task.text === PROTECTED_TASK ? 'protected-task' : ''}">
+                    <input type="checkbox" 
+                           ${task.completed ? 'checked' : ''} 
+                           onchange="toggleTask(${task.id})">
+                    <span class="item-text">${escapeHtml(task.text)}</span>
+                    <button class="delete-btn" onclick="deleteTask(${task.id})">Delete</button>
+                </li>
+            `).join('');
+
+            const completed = tasks.filter(t => t.completed).length;
+            stats.textContent = `${completed} of ${tasks.length} tasks completed`;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Initialize with empty checklist
+        renderChecklist();
+    </script>
+</body>
+</html>
